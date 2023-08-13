@@ -1,0 +1,60 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+#define MAX_CMD_LEN 512
+#define PROMPT "myshell> "
+
+int main(void)
+{
+    char cmd[MAX_CMD_LEN];
+    char *args[2];
+    int status;
+
+    args[1] = NULL;
+    while (1)
+    {
+        printf(PROMPT);
+        if (fgets(cmd, MAX_CMD_LEN, stdin) == NULL)
+        {
+            printf("\n");
+            exit(0);
+        }
+        cmd[strlen(cmd) - 1] = '\0';
+        args[0] = cmd;
+        if (strcmp(cmd, "exit") == 0)
+        {
+            exit(0);
+        }
+        else if (strcmp(cmd, "pwd") == 0)
+        {
+            char cwd[1024];
+            if (getcwd(cwd, sizeof(cwd)) != NULL)
+                printf("%s\n", cwd);
+            else
+                perror("getcwd() error");
+        }
+        else if (strncmp(cmd, "cd ", 3) == 0)
+        {
+            if (chdir(cmd + 3) != 0)
+                perror("chdir() error");
+        }
+        else
+        {
+            if (fork() == 0)
+            {
+                execve(cmd, args, NULL);
+                fprintf(stderr, "%s: command not found\n", cmd);
+                exit(1);
+            }
+            else
+            {
+                wait(&status);
+            }
+        }
+    }
+    return (0);
+}
+
